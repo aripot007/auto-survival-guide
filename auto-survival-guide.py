@@ -1,48 +1,72 @@
 import re
 import json
+import argparse
 import requests
+
 
 def remove_html_tags(text):
     clean = re.compile('<.*?>')
     cleaned = re.sub(clean, '', text)
-    return re.sub(r'\([^)]*\)', '', cleaned)
+    return re.sub(r'\([^)]*\)', '', cleaned).replace("&", "\\&")
 
-titre_guide = input("Titre du guide ?\n")
-nb_parties = int(input("Nombre de parties ?\n"))
 
+def escape_latex(text):
+    return text.replace("&", "\\&")
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("file", help="path to guide.json")
+ap.add_argument("-m", "--manual", required=False, help="Use manual mode", action="store_true")
+ap.add_argument("-s", "--skip-not-found", "--skip", dest="skip-not-found", required=False, help="Skip words with no information found", action="store_true")
+ap.add_argument("-o", "--output", required=False, help="output file", default=None)
+args = vars(ap.parse_args())
+
+guide = None
+with open(args["file"], "r") as f:
+    guide = json.load(f)
+
+titre_guide = escape_latex( guide["title"])
 parties = []
 
-for i in range(nb_parties):
+for part in guide["parts"]:
     definitions = {}
-    titre_partie = input("Titre de la {}e partie ?\n".format(i+1))
-    print("Veuillez saisir les mots/expressions que vous désirez, FIN pour passer à la partie suivante")
-    fin = False
+    titre_partie = escape_latex(part["title"])
+    for word in part["words"]:
+        trouve = False
+        for s in part["sources"]:
 
-    while not fin:
-        mots = input("")
-        if "FIN" in mots:
-            fin = True
-        elif " DEF" in mots:
-            mots = mots.replace(" DEF", "")
-            url = requests.get("https://en.wiktionary.org/api/rest_v1/page/definition/{}".format(mots))
-            data = json.loads(url.text)
-            try:
-                reponse = remove_html_tags(data["en"][0]["definitions"][0]["definition"])
-            except:
-                reponse = ""
-        else:
-            url = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exsentences=1&exlimit=1&titles={}&explaintext=1&formatversion=2&format=json".format(mots))
-            data = json.loads(url.text)
-            try:
-                reponse = data["query"]["pages"][0]["extract"]
-            except:
-                reponse = ""
+            # Wiktionary
+            if s == 2:
+                url = requests.get("https://en.wiktionary.org/api/rest_v1/page/definition/{}".format(word.lower()))
+                data = json.loads(url.text)
+                try:
+                    reponse = remove_html_tags(data["en"][0]["definitions"][0]["definition"])
+                except:
+                    reponse = ""
 
-        if reponse == "" and fin == False:
-            print("Pas trouvé !")
-        elif fin == False:
-            print("Trouvé !")
-            definitions[mots] = reponse
+            elif s == 1:
+                url = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exsentences=1&exlimit=1&titles={}&explaintext=1&formatversion=2&format=json".format(word))
+                data = json.loads(url.text)
+                try:
+                    reponse = data["query"]["pages"][0]["extract"]
+                except:
+                    reponse = ""
+
+            else:
+                print("Erreur : source invalide ({}) pour la partie {}".format(s, titre_partie))
+                exit(1)
+
+            if reponse != "":
+                definitions[word] = reponse
+                trouve = True
+                break
+
+        if not trouve:
+            print("Avertissement : le mot '{}' n'a été trouvé dans aucune des sources données.".format(word))
+            if not args["skip-not-found"]:
+                definition = input("Entrez une définition manuellement pour '{}' ('s' = passer ce mot) : ".format(word))
+                if definition.lower() != "s":
+                    definitions[word] = definition
 
     parties.append((titre_partie, definitions))
 
