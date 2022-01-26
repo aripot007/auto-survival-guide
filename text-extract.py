@@ -16,7 +16,7 @@ def get_text(image, box):
 pytesseract.pytesseract.tesseract_cmd = "D:\\Programmes\\Tesseract\\tesseract.exe"
 
 ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True, help="path to the image")
+ap.add_argument("image", help="path to the image")
 ap.add_argument("-r", "--resize", required=False, help="resize the image", action="store_true")
 ap.add_argument("-o", "--output", required=False, help="output file", default=None)
 args = vars(ap.parse_args())
@@ -42,7 +42,29 @@ while True:
     textBoxes = cv2.selectROIs("Select text areas", img, False)
     cv2.destroyAllWindows()
 
-    partsRois.append((partTitleBox, textBoxes))
+    # Ask for the sources
+    print("Sources à utiliser pour cette partie ? (dans l'ordre de préférence, séparées par des espaces)")
+    valide = False
+    while not valide:
+        print("Sources disponibles :")
+        print("1: Wikipedia     2: Wiktionary")
+        s = input("Sources [1 2]: ")
+        if s == "":
+            sources = [1, 2]
+            valide = True
+        else:
+            sources = []
+            try:
+                for source in s.split():
+                    source = int(source)
+                    if source < 1 or source > 2:
+                        raise Exception
+                    sources.append(source)
+                valide = True
+            except:
+                print("Source invalide : {}".format(source))
+
+    partsRois.append((partTitleBox, textBoxes, sources))
 
 # extract the title
 title = get_text(img, titleBox).strip()
@@ -56,7 +78,9 @@ for p in partsRois:
     # Remove empty strings
     words = list(filter(lambda s: s != "", words))
 
-    parts.append({"title": part_title, "words": words})
+    # Ask for sources
+
+    parts.append({"title": part_title, "words": words, "sources": p[2]})
 
 filename = args["output"]
 if filename is None:
