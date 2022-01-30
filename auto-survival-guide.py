@@ -14,20 +14,85 @@ def escape_latex(text):
     return text.replace("&", "\\&")
 
 
+def manual_guide():
+    title = escape_latex(input("Titre du guide : "))
+    guide_parts = []
+    nb_parties = int(input("Nombre de parties : "))
+    for i in range(nb_parties):
+        part = {}
+        part["title"] = input("Titre de la partie {} : ".format(i + 1))
+        part["words"] = []
+        print("Mots ('FIN' pour terminer)")
+        while True:
+            word = input()
+            if word == "FIN":
+                break
+            part["words"].append(word)
+
+        print("Sources à utiliser pour cette partie ? (dans l'ordre de préférence, séparées par des espaces)")
+        valide = False
+        while not valide:
+            print("Sources disponibles :")
+            print("1: Wikipedia     2: Wiktionary")
+            s = input("Sources [1 2]: ")
+            if s == "":
+                sources = [1, 2]
+                valide = True
+            else:
+                sources = []
+                try:
+                    for source in s.split():
+                        source = int(source)
+                        if source < 1 or source > 2:
+                            raise Exception
+                        sources.append(source)
+                    valide = True
+                except:
+                    print("Source invalide : {}".format(source))
+        part["sources"] = sources
+        guide_parts.append(part)
+    return title, guide_parts
+
+
 ap = argparse.ArgumentParser()
-ap.add_argument("file", help="path to guide.json")
+ap.add_argument("-f", "--file", help="path to guide.json")
+ap.add_argument("-l", "--latest", help="Get the latest survival guide from the internet")
+ap.add_argument("--list", help="Choose from available guides on the server")
 ap.add_argument("-m", "--manual", required=False, help="Use manual mode", action="store_true")
 ap.add_argument("-s", "--skip-not-found", "--skip", dest="skip-not-found", required=False, help="Skip words with no information found", action="store_true")
 ap.add_argument("-o", "--output", required=False, help="output file", default=None)
 args = vars(ap.parse_args())
 
-with open(args["file"], "r") as f:
-    guide = json.load(f)
 
-titre_guide = escape_latex( guide["title"])
+parts = None
+titre_guide = None
+
+# Demande le guide manuellement
+if args["manual"]:
+    titre_guide, parts = manual_guide()
+
+# Lit le guide depuis un fichier ou depuis le web
+else:
+    if args["list"]:
+        print("Work in progress")
+        exit(0)
+    elif args["latest"]:
+        response = requests.get("https://api.survival-guide.tk/latest")
+        exit(0)
+    elif args["file"] != "":
+        with open(args["file"], "r") as f:
+            guide = json.load(f)
+            titre_guide = guide["title"]
+            parts = guide["parts"]
+    else:
+        # Menu de choix
+        print("Menu work in progress")
+        titre_guide, parts = manual_guide()
+
 parties = []
+titre_guide = escape_latex(titre_guide)
 
-for part in guide["parts"]:
+for part in parts:
     definitions = {}
     titre_partie = escape_latex(part["title"])
     for word in part["words"]:
