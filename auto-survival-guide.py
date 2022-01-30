@@ -21,7 +21,6 @@ ap.add_argument("-s", "--skip-not-found", "--skip", dest="skip-not-found", requi
 ap.add_argument("-o", "--output", required=False, help="output file", default=None)
 args = vars(ap.parse_args())
 
-guide = None
 with open(args["file"], "r") as f:
     guide = json.load(f)
 
@@ -44,10 +43,15 @@ for part in guide["parts"]:
                 except:
                     reponse = ""
 
+            # Wikipédia
             elif s == 1:
-                url = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exsentences=1&exlimit=1&titles={}&explaintext=1&formatversion=2&format=json".format(word))
-                data = json.loads(url.text)
+                # Recherche du mot
                 try:
+                    search = requests.get("https://en.wikipedia.org/w/api.php?action=opensearch&limit=1&namespace=0&format=json&profile=fuzzy&redirects=resolve&search={}".format(word))
+                    search_result = json.loads(search.text)
+                    article_title = search_result[1][0]
+                    url = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exsentences=1&exlimit=1&explaintext=1&formatversion=2&format=json&titles={}".format(article_title))
+                    data = json.loads(url.text)
                     reponse = data["query"]["pages"][0]["extract"]
                 except:
                     reponse = ""
