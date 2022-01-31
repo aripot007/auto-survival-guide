@@ -78,7 +78,9 @@ else:
         exit(0)
     elif args["latest"]:
         response = requests.get("https://api.survival-guide.tk/latest")
-        exit(0)
+        guide = json.loads(response.text)
+        titre_guide = guide["title"]
+        parts = guide["parts"]
     elif args["file"] != "":
         with open(args["file"], "r") as f:
             guide = json.load(f)
