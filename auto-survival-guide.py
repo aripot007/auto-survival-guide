@@ -2,7 +2,11 @@ import re
 import json
 import argparse
 import requests
-
+try:
+    from tqdm import tqdm
+    use_tqdm = True
+except ImportError:
+    use_tqdm = False
 
 def remove_html_tags(text):
     clean = re.compile('<.*?>')
@@ -95,12 +99,19 @@ else:
 parties = []
 titre_guide = escape_latex(titre_guide)
 
-print("Getting words definitions ...")
+if use_tqdm:
+    nbWords = sum([len(p["words"]) for p in parts])
+    progress = tqdm(total=nbWords, desc="Searching words definitions")
+else:
+    print("Searching words definitions ...")
+count = 0
 
 for part in parts:
     definitions = {}
     titre_partie = escape_latex(part["title"])
     for word in part["words"]:
+        if use_tqdm:
+            progress.update()
         trouve = False
         for s in part["sources"]:
 
@@ -127,7 +138,7 @@ for part in parts:
                     reponse = ""
 
             else:
-                print("Erreur : source invalide ({}) pour la partie {}".format(s, titre_partie))
+                print("\nErreur : source invalide ({}) pour la partie {}".format(s, titre_partie))
                 exit(1)
 
             if reponse != "":
@@ -136,13 +147,17 @@ for part in parts:
                 break
 
         if not trouve:
-            print("Avertissement : le mot '{}' n'a été trouvé dans aucune des sources données.".format(word))
+            print("\nAvertissement : le mot '{}' n'a été trouvé dans aucune des sources données.".format(word))
             if not args["skip-not-found"]:
                 definition = input("Entrez une définition manuellement pour '{}' ('s' = passer ce mot) : ".format(word))
                 if definition.lower() != "s":
                     definitions[word] = definition
+        count += 1
 
     parties.append((titre_partie, definitions))
+
+print("\n")
+
 
 latex = ""
 
