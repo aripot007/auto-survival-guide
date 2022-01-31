@@ -1,3 +1,4 @@
+import os.path
 import re
 import json
 import argparse
@@ -7,6 +8,10 @@ try:
     use_tqdm = True
 except ImportError:
     use_tqdm = False
+
+import settings
+
+API_SERVER = "https://api.survival-guide.tk"
 
 def remove_html_tags(text):
     clean = re.compile('<.*?>')
@@ -61,10 +66,12 @@ def manual_guide():
 ap = argparse.ArgumentParser()
 ap.add_argument("-f", "--file", help="path to guide.json")
 ap.add_argument("-l", "--latest", action="store_true", help="Get the latest survival guide from the internet")
+ap.add_argument("-t", "--template", help="Path to the template file", default=settings.TEMPLATE_PATH)
+ap.add_argument("-n", "--sentences-per-word", help="How many sentences should be used for a word", default=settings.SENTENCES_PER_WORD)
 ap.add_argument("--list", action="store_true", help="Choose from available guides on the server")
 ap.add_argument("-m", "--manual", help="Use manual mode", action="store_true")
 ap.add_argument("-s", "--skip-not-found", "--skip", dest="skip-not-found", required=False, help="Skip words with no information found", action="store_true")
-ap.add_argument("-o", "--output", required=False, help="output file", default=None)
+ap.add_argument("-o", "--output", required=False, help="output file", default=settings.DEFAULT_OUTPUT)
 args = vars(ap.parse_args())
 
 
@@ -80,7 +87,7 @@ else:
     elif args["latest"]:
         print("Fetching latest guide from api.survival-guide.tk ...")
         try:
-            response = requests.get("https://api.survival-guide.tk/latest")
+            response = requests.get(API_SERVER + "/latest")
             if response.status_code != 200:
                 print("Could not get the guide from the server : ", response.status_code)
                 exit(1)
@@ -103,6 +110,11 @@ else:
         print("Menu work in progress")
         guide = manual_guide()
 
+if not os.path.isfile(args["template"]):
+    print("Invalid template path !")
+    exit(1)
+
+sentence_per_word = int(args["sentences-per-word"])
 titre_guide = guide["title"]
 parts = guide["parts"]
 parties = []
@@ -143,7 +155,7 @@ for part in parts:
                     search = requests.get("https://en.wikipedia.org/w/api.php?action=opensearch&limit=1&namespace=0&format=json&profile=fuzzy&redirects=resolve&search={}".format(word))
                     search_result = json.loads(search.text)
                     article_title = search_result[1][0]
-                    url = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exsentences=1&exlimit=1&explaintext=1&formatversion=2&format=json&titles={}".format(article_title))
+                    url = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exsentences={}&exlimit=1&explaintext=1&formatversion=2&format=json&titles={}".format(sentence_per_word, article_title))
                     data = json.loads(url.text)
                     reponse = data["query"]["pages"][0]["extract"]
                 except:
@@ -187,11 +199,11 @@ for partie in parties:
 
 latex += "\end{document}"
 
-template_file = open("template.tex", "r")
+template_file = open(args["template"], "r")
 template = template_file.read()
 template_file.close()
 
-final_file = open("survival_guide.tex", "w")
+final_file = open(args["output"], "w")
 final_file.write(template.replace("TITLE", titre_guide)+latex)
 final_file.close()
 

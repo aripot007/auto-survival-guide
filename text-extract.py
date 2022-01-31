@@ -4,6 +4,7 @@ import os
 import json
 import argparse
 import pytesseract
+import settings
 
 
 def get_text(image, box):
@@ -13,7 +14,7 @@ def get_text(image, box):
     return pytesseract.image_to_string(cropped)
 
 
-pytesseract.pytesseract.tesseract_cmd = "D:\\Programmes\\Tesseract\\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
 
 ap = argparse.ArgumentParser()
 ap.add_argument("image", help="path to the image")
