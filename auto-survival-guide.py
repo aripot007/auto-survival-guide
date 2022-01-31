@@ -55,7 +55,7 @@ def manual_guide():
                     print("Source invalide : {}".format(source))
         part["sources"] = sources
         guide_parts.append(part)
-    return title, guide_parts
+    return {"title": title, "parts": guide_parts}
 
 
 ap = argparse.ArgumentParser()
@@ -82,10 +82,22 @@ else:
         exit(0)
     elif args["latest"]:
         print("Fetching latest guide from api.survival-guide.tk ...")
-        response = requests.get("https://api.survival-guide.tk/latest")
-        guide = json.loads(response.text)
-        titre_guide = guide["title"]
-        parts = guide["parts"]
+        try:
+            response = requests.get("https://api.survival-guide.tk/latest")
+            if response.status_code != 200:
+                print("Could not get the guide from the server : ", response.status_code)
+                exit(1)
+            guide = json.loads(response.text)
+        except requests.ConnectionError or IOError as e:
+            print("Could not connect to the server :")
+            print(e)
+            exit(1)
+
+        except json.decoder.JSONDecodeError as e:
+            print("Error while decoding the guide :")
+            print(e)
+            exit(1)
+
     elif args["file"] != "":
         with open(args["file"], "r") as f:
             guide = json.load(f)
@@ -94,14 +106,16 @@ else:
     else:
         # Menu de choix
         print("Menu work in progress")
-        titre_guide, parts = manual_guide()
+        guide = manual_guide()
 
+titre_guide = guide["title"]
+parts = guide["parts"]
 parties = []
 titre_guide = escape_latex(titre_guide)
 
 if use_tqdm:
     nbWords = sum([len(p["words"]) for p in parts])
-    progress = tqdm(total=nbWords, desc="Searching words definitions")
+    progress = tqdm(total=nbWords, desc="Searching words definitions", unit="word")
 else:
     print("Searching words definitions ...")
 count = 0
@@ -120,6 +134,11 @@ for part in parts:
                 url = requests.get("https://en.wiktionary.org/api/rest_v1/page/definition/{}".format(word.lower()))
                 data = json.loads(url.text)
                 try:
+                    search = requests.get("https://en.wiktionary.org/w/api.php?action=opensearch&limit=1&namespace=0&format=json&profile=fuzzy&redirects=resolve&search={}".format(word))
+                    search_result = json.loads(search.text)
+                    page_title = search_result[1][0]
+                    url = requests.get("https://en.wiktionary.org/api/rest_v1/page/definition/{}".format(page_title))
+                    data = json.loads(url.text)
                     reponse = remove_html_tags(data["en"][0]["definitions"][0]["definition"])
                 except:
                     reponse = ""
@@ -156,7 +175,7 @@ for part in parts:
 
     parties.append((titre_partie, definitions))
 
-print("\n")
+print("\nGenerating guide ...")
 
 
 latex = ""
@@ -182,3 +201,5 @@ template_file.close()
 final_file = open("survival_guide.tex", "w")
 final_file.write(template.replace("TITLE", titre_guide)+latex)
 final_file.close()
+
+print("Done !")
