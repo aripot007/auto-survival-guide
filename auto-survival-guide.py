@@ -56,9 +56,9 @@ def manual_guide():
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-f", "--file", help="path to guide.json")
-ap.add_argument("-l", "--latest", help="Get the latest survival guide from the internet")
-ap.add_argument("--list", help="Choose from available guides on the server")
-ap.add_argument("-m", "--manual", required=False, help="Use manual mode", action="store_true")
+ap.add_argument("-l", "--latest", action="store_true", help="Get the latest survival guide from the internet")
+ap.add_argument("--list", action="store_true", help="Choose from available guides on the server")
+ap.add_argument("-m", "--manual", help="Use manual mode", action="store_true")
 ap.add_argument("-s", "--skip-not-found", "--skip", dest="skip-not-found", required=False, help="Skip words with no information found", action="store_true")
 ap.add_argument("-o", "--output", required=False, help="output file", default=None)
 args = vars(ap.parse_args())
@@ -77,6 +77,7 @@ else:
         print("Work in progress")
         exit(0)
     elif args["latest"]:
+        print("Fetching latest guide from api.survival-guide.tk ...")
         response = requests.get("https://api.survival-guide.tk/latest")
         guide = json.loads(response.text)
         titre_guide = guide["title"]
@@ -93,6 +94,8 @@ else:
 
 parties = []
 titre_guide = escape_latex(titre_guide)
+
+print("Getting words definitions ...")
 
 for part in parts:
     definitions = {}
