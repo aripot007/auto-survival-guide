@@ -68,12 +68,9 @@ ap.add_argument("-o", "--output", required=False, help="output file", default=No
 args = vars(ap.parse_args())
 
 
-parts = None
-titre_guide = None
-
 # Demande le guide manuellement
 if args["manual"]:
-    titre_guide, parts = manual_guide()
+    guide = manual_guide()
 
 # Lit le guide depuis un fichier ou depuis le web
 else:
@@ -101,8 +98,6 @@ else:
     elif args["file"] != "":
         with open(args["file"], "r") as f:
             guide = json.load(f)
-            titre_guide = guide["title"]
-            parts = guide["parts"]
     else:
         # Menu de choix
         print("Menu work in progress")
@@ -131,8 +126,6 @@ for part in parts:
 
             # Wiktionary
             if s == 2:
-                url = requests.get("https://en.wiktionary.org/api/rest_v1/page/definition/{}".format(word.lower()))
-                data = json.loads(url.text)
                 try:
                     search = requests.get("https://en.wiktionary.org/w/api.php?action=opensearch&limit=1&namespace=0&format=json&profile=fuzzy&redirects=resolve&search={}".format(word))
                     search_result = json.loads(search.text)
