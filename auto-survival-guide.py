@@ -14,7 +14,7 @@ except ImportError:
 import settings
 from settings import TEMPLATE_PLACEHOLDERS as placeholders
 
-API_SERVER = "https://api.survival-guide.tk"
+API_SERVER = "https://api.survival-guide.tk/api"
 
 
 def remove_html_tags(text):
@@ -118,7 +118,7 @@ def guide_from_server():
             print("Merci d'entrer un choix valide !")
             continue
         break
-    return online_guide(guide_list[choix]["url"])
+    return online_guide(API_SERVER + "/guide/" + guide_list[choix]["id"])
 
 
 ap = argparse.ArgumentParser()
@@ -146,7 +146,7 @@ else:
 
     elif args["latest"]:
         print("Fetching latest guide from api.survival-guide.tk ...")
-        guide = online_guide(API_SERVER + "/latest")
+        guide = online_guide(API_SERVER + "/guide/latest")
 
     elif args["test"]:
         guide = {"title": "Test Guide",
@@ -189,7 +189,7 @@ else:
             guide = manual_guide()
         elif choix == 2:
             print("Fetching latest guide from api.survival-guide.tk ...")
-            guide = online_guide(API_SERVER + "/latest")
+            guide = online_guide(API_SERVER + "/guide/latest")
         else:
             guide = guide_from_server()
 
