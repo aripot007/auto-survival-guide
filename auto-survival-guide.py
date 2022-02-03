@@ -277,6 +277,9 @@ for part in parts:
 
     parties.append((titre_partie, definitions))
 
+if use_tqdm:
+    progress.close()
+
 print("\nGenerating guide ...")
 
 with open(args["template"], "r") as f:
