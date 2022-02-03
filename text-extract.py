@@ -18,14 +18,14 @@ pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
 
 ap = argparse.ArgumentParser()
 ap.add_argument("image", help="path to the image")
-ap.add_argument("-r", "--resize", required=False, help="resize the image", action="store_true")
+ap.add_argument("-r", "--resize", required=False, help="resize the image", default="900")
 ap.add_argument("-o", "--output", required=False, help="output file", default=None)
 args = vars(ap.parse_args())
 
 img = cv2.imread(args["image"])
 
 if args["resize"]:
-    img = imutils.resize(img, width=900)
+    img = imutils.resize(img, width=int(args["resize"]))
 
 # Sélection des zones de texte
 titleBox = cv2.selectROI("Select the title", img, False)
