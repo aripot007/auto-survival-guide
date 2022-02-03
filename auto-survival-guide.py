@@ -67,6 +67,60 @@ def manual_guide():
     return {"title": title, "parts": guide_parts}
 
 
+def online_guide(url):
+    try:
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            print("Could not get the guide from the server : ", resp.status_code)
+            exit(1)
+        guide = json.loads(resp.text)
+    except requests.ConnectionError or IOError as e:
+        print("Could not connect to the server :")
+        print(e)
+        exit(1)
+
+    except json.decoder.JSONDecodeError as e:
+        print("Error while decoding the guide :")
+        print(e)
+        exit(1)
+
+    return guide
+
+
+def guide_from_server():
+    guide_list = None
+    try:
+        response = requests.get(API_SERVER + "/guides")
+        if response.status_code != 200:
+            print("Could not get the guide list from the server : ", response.status_code)
+            exit(1)
+        guide_list = json.loads(response.text)
+    except requests.ConnectionError or IOError as e:
+        print("Could not connect to the server :")
+        print(e)
+        exit(1)
+
+    except json.decoder.JSONDecodeError as e:
+        print("Error while decoding the guide list :")
+        print(e)
+        exit(1)
+
+    print("Select a guide : ")
+    for i in range(len(guide_list)):
+        print("{} : {}".format(i + 1, guide_list[i]["title"]))
+
+    while True:
+        try:
+            choix = int(input("Choix : ")) - 1
+            if choix < 0 or choix >= len(guide_list):
+                raise Exception
+        except:
+            print("Merci d'entrer un choix valide !")
+            continue
+        break
+    return online_guide(guide_list[choix]["url"])
+
+
 ap = argparse.ArgumentParser()
 ap.add_argument("-f", "--file", help="path to guide.json")
 ap.add_argument("-l", "--latest", action="store_true", help="Get the latest survival guide from the internet")
@@ -88,25 +142,11 @@ if args["manual"]:
 # Lit le guide depuis un fichier ou depuis le web
 else:
     if args["list"]:
-        print("Work in progress")
-        exit(0)
+        guide = guide_from_server()
+
     elif args["latest"]:
         print("Fetching latest guide from api.survival-guide.tk ...")
-        try:
-            response = requests.get(API_SERVER + "/latest")
-            if response.status_code != 200:
-                print("Could not get the guide from the server : ", response.status_code)
-                exit(1)
-            guide = json.loads(response.text)
-        except requests.ConnectionError or IOError as e:
-            print("Could not connect to the server :")
-            print(e)
-            exit(1)
-
-        except json.decoder.JSONDecodeError as e:
-            print("Error while decoding the guide :")
-            print(e)
-            exit(1)
+        guide = online_guide(API_SERVER + "/latest")
 
     elif args["test"]:
         guide = {"title": "Test Guide",
@@ -127,13 +167,31 @@ else:
                  ]
                  }
 
-    elif args["file"] != "":
+    elif args["file"] is not None:
         with open(args["file"], "r") as f:
             guide = json.load(f)
     else:
-        # Menu de choix
-        print("Menu work in progress")
-        guide = manual_guide()
+        print("Choisissez le moyen d'obtention du guide : ")
+        print("1 : Manuel")
+        print("2 : Guide du chapitre en cours")
+        print("3 : Choix parmi les guides disponibles sur le server")
+        while True:
+            try:
+                choix = int(input("Choix : "))
+                if choix < 1 or choix > 3:
+                    raise Exception
+            except:
+                print("Merci d'entrer un choix valide !")
+                continue
+            break
+
+        if choix == 1:
+            guide = manual_guide()
+        elif choix == 2:
+            print("Fetching latest guide from api.survival-guide.tk ...")
+            guide = online_guide(API_SERVER + "/latest")
+        else:
+            guide = guide_from_server()
 
 if not os.path.isfile(args["template"]):
     print("Invalid template path !")
