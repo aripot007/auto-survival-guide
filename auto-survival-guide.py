@@ -125,6 +125,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-f", "--file", help="path to guide.json")
 ap.add_argument("-l", "--latest", action="store_true", help="Get the latest survival guide from the internet")
 ap.add_argument("-t", "--template", help="Path to the template file", default=settings.TEMPLATE_PATH)
+ap.add_argument("--json", help="Output the json description of this guide", action="store_true")
 ap.add_argument("--test", help="Test run", action="store_true")
 ap.add_argument("-n", "--sentences-per-word", dest="sentences-per-word",
                 help="How many sentences should be used for a word", default=settings.SENTENCES_PER_WORD)
@@ -192,6 +193,13 @@ else:
             guide = online_guide(API_SERVER + "/guide/latest")
         else:
             guide = guide_from_server()
+
+if args["json"]:
+    out = "guide.json" if args["output"] == settings.DEFAULT_OUTPUT else args["output"]
+    with open(out, "w") as f:
+        json.dump(guide, f)
+    print("Json guide saved to", out)
+    exit(0)
 
 if not os.path.isfile(args["template"]):
     print("Invalid template path !")
