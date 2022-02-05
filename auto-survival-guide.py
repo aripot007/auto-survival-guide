@@ -302,7 +302,8 @@ for part in parties:
     for w, d in words.items():
         words_text += word_template.replace(placeholders["word_word"], w).replace(placeholders["word_def"], d)
 
-    text = re.sub(placeholders["word_start"] + "(.*)" + placeholders["word_end"], words_text, part_template, flags=re.RegexFlag.DOTALL)
+    text = re.sub(placeholders["word_start"] + "(.*)" + placeholders["word_end"], placeholders["word_start"], part_template, flags=re.RegexFlag.DOTALL)
+    text = text.replace(placeholders["word_start"], words_text)
     text = text.replace(placeholders["part_title"], title)
     output += text
 
